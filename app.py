@@ -18,7 +18,7 @@ app.config['SQLALCHEMY_BINDS'] = {
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)  
 db = SQLAlchemy(app)
 app.secret_key = os.getenv("SECRET_KEY", "default_secret")
-bcrypt = Bcrypt()
+bcrypt = Bcrypt(app)
 
 limiter = Limiter(
     get_remote_address,
@@ -35,7 +35,7 @@ class User(db.Model):
     name = db.Column(db.String(100), nullable = False)
     ph_number = db.Column(db.String(15), nullable=False, unique=True)
     email = db.Column(db.String(100), nullable = False, unique= True)
-    is_admin = db.Column(db.String(10), nullable = False)
+    is_admin = db.Column(db.Boolean, nullable = False)
     password = db.Column(db.String(100))
 
     def __init__(self, email, password, name, ph_number, is_admin):
@@ -84,9 +84,9 @@ def register():
         is_admin = request.form.get('is_admin')
         
         if(is_admin == "on"):
-            is_admin = "yes"
+            is_admin = True
         else:
-            is_admin = "no"
+            is_admin = False
 
         if(password != confirm_password):
             return render_template('register.html', error1 = "Passwords do not match. Please try again")
@@ -199,7 +199,7 @@ def forgot():
         if session.get('email'):
             email = session['email']
             user = User.query.filter_by(email= email).first()
-            user.password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            user.password = bcrypt.generate_password_hash(password).decode('utf-8')
             db.session.commit()
             session.pop('email', None)
             flash("Password Changed Successfully!")
@@ -207,9 +207,46 @@ def forgot():
 
     return render_template('forgot.html')
 
-@app.route('/add_book')
+@app.route('/add_book', methods = ['GET','POST'])
 def add_book():
-    pass
+    if request.method == 'POST':
+        title = request.form.get('title')
+        author = request.form.get('author')
+        genre = request.form.get('genre')
+        rating = request.form.get('rating')
+
+        if rating:
+            rating = float(rating)
+        else:
+            rating = None
+
+        new_book = Book(title = title, author = author, genre = genre, rating = rating)
+        db.session.add(new_book)
+        db.session.commit()
+        flash("New book added successfully!", "success")
+        return redirect('/dashboard')
+    
+    return render_template('add_book.html')
+
+@app.route('/add_another', methods = ['GET', 'POST'])
+def add_another():
+    if request.method == 'POST':
+        title = request.form.get('title')
+        author = request.form.get('author')
+        genre = request.form.get('genre')
+        rating = request.form.get('rating')
+
+        if rating:
+            rating = float(rating)
+        else:
+            rating = None
+
+        new_book = Book(title = title, author = author, genre = genre, rating = rating)
+        db.session.add(new_book)
+        db.session.commit()
+        flash("New book added successfully!", "success")
+    return redirect('/add_book')
+
 
 if __name__ == '__main__':
     app.run(debug=True)
