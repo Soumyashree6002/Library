@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <title>Login Page</title>
+  <title>Dashboard</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
@@ -27,9 +27,52 @@
                 {{user.name}}
                 <div>
                     {% if user.is_admin %}
-                        <button type= "button" class = "btn btn-dark"><a href="/add_book">Add another book</a></button>
+                    <a href="/add_book" class="btn btn-info" style="text-decoration: none; color: white;">Add book</a>
                     {% endif %}
                 </div>
+                <div class="form-group">
+                    <label for="genreFilter">Filter by genre:</label>
+                    <select class="form-control" id="genreFilter" name="genreFilter">
+                        <option value="">All</option>
+                        <option value="action">Action</option>
+                        <option value="biography">Biography</option>
+                        <option value="fantasy">Fantasy</option>
+                        <option value="fiction">Fiction</option>
+                        <option value="history">History</option>
+                        <option value="horror">Horror</option>
+                        <option value="mystery">Mystery</option>
+                        <option value="romance">Romance</option>
+                        <option value="science">Science</option>
+                        <option value="self-help">Self-Help</option>
+                    </select>                    
+                  </div>
+                  <div class="form-group">
+                    <label for="ratingFilter">Minimum Rating:</label>
+                    <input type="number" id="ratingFilter" class="form-control" min="1" max="5" step="0.1">
+                </div>
+                <div class="form-group">
+                    <label for="limitSelect">Books per page:</label>
+                    <select id="limitSelect" class="form-control" onchange="updateLimit()">
+                        <option value="5">5</option>
+                        <option value="10">10</option>
+                        <option value="20">20</option>
+                    </select>
+                </div>
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Author</th>
+                            <th>Genre</th>
+                            <th>Rating</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                      
+                    </tbody>
+                </table>
+                <button onclick="prevPage()" class="btn btn-secondary">Previous</button>
+                <button onclick="nextPage()" class="btn btn-secondary">Next</button>
                 <div><a href="/logout" class="btn btn-primary">Logout</a></div>
             </div>
         </div>
