@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, redirect, session, flash
+from flask import Flask, request, render_template, redirect, session, flash, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 import string
@@ -22,9 +22,11 @@ bcrypt = Bcrypt(app)
 
 limiter = Limiter(
     get_remote_address,
-    app=app,
     default_limits=["5 per minute"] 
 )
+
+def limit_only_post():
+    return request.remote_addr if request.method == "POST" else None 
 
 @app.errorhandler(429)
 def ratelimit_error(e):
@@ -117,7 +119,7 @@ def register():
     return render_template('register.html')
 
 @app.route('/login', methods= ['GET', 'POST'])
-@limiter.limit("5 per minute")
+@limiter.limit("5 per minute", key_func=limit_only_post)  
 def login():
     if 'email' in session:
         return redirect('/dashboard')
@@ -246,6 +248,61 @@ def add_another():
         db.session.commit()
         flash("New book added successfully!", "success")
     return redirect('/add_book')
+
+@app.route('/books')
+def books():
+    page = request.args.get('page', type=int)
+    limit = request.args.get('limit', type=int)
+    genre = request.args.get('genre', None)
+    rating = request.args.get('rating', None, type=float)
+    author = request.args.get('author', None)
+
+    books = Book.query
+
+    if genre:
+        books = books.filter(Book.genre.ilike(f"%{genre}%"))
+    if rating:
+        books = books.filter(Book.rating >= rating)
+    if author:
+        books = books.filter(Book.author.ilike(f"%{author}%"))
+
+    if page and limit:
+        books = books.paginate(page=page, per_page=limit, error_out=False)
+        return jsonify({
+            'total_books' : books.total,
+            'current_page' : books.page,
+            'total_pages': books.pages,
+            'books' : [{'id' : b.id,
+                        'title': b.title,
+                        'author': b.author,
+                        'genre': b.genre,
+                        'rating': b.rating}
+                        for b in books.items]
+        })
+    else:
+        return jsonify([
+            {'id' : b.id,
+            'title': b.title,
+            'author': b.author,
+            'genre': b.genre,
+            'rating': b.rating}
+            for b in books.all()
+        ])
+
+
+@app.route('/books/<int:book_id>', methods=['GET'])
+def get_book_by_id(book_id):
+    book = Book.query.get(book_id) 
+    if not book:
+        return jsonify({'error': 'Book not found'}), 404  
+    
+    return jsonify({
+        'id': book.id,
+        'title': book.title,
+        'author': book.author,
+        'genre': book.genre,
+        'rating': book.rating
+    })
 
 
 if __name__ == '__main__':
