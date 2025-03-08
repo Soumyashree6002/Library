@@ -30,6 +30,11 @@ async function fetchBooks() {
                 </tr>`;
             tableBody.innerHTML += row;
         });
+
+        totalPages = data.total_pages;
+
+        updatePageButtons();
+
     } 
     catch (error) {
         console.error("Error fetching books : ", error);
@@ -37,8 +42,10 @@ async function fetchBooks() {
 }
 
 function nextPage() {
-    currentPage++;
-    fetchBooks();
+    if(currentPage < totalPages) {
+        currentPage++;
+        fetchBooks();
+    } 
 }
 
 function prevPage() {
@@ -51,6 +58,11 @@ function prevPage() {
 function updateLimit() {
     currentPage = 1;
     fetchBooks();
+}
+
+function updatePageButtons() {
+    document.getElementById("prevBtn").disabled = currentPage === 1;
+    document.getElementById("nextBtn").disabled = currentPage >= totalPages;
 }
 
 window.onload = fetchBooks;
