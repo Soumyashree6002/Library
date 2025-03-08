@@ -1,12 +1,11 @@
-from flask import Flask, request, render_template, redirect, session, flash, jsonify
+from flask import Flask, request, render_template, url_for, redirect, session, flash, jsonify, make_response
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 import string
 from datetime import timedelta
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
 from dotenv import load_dotenv
 import os
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, set_access_cookies, unset_jwt_cookies, decode_token
 
 load_dotenv()
 
@@ -19,18 +18,17 @@ app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
 db = SQLAlchemy(app)
 app.secret_key = os.getenv("SECRET_KEY", "default_secret")
 bcrypt = Bcrypt(app)
+app.config['JWT_SECRET_KEY'] = os.getenv("JWT_SECRET_KEY", "your_jwt_secret") 
+app.config['JWT_TOKEN_LOCATION'] = ['cookies']
+app.config['JWT_COOKIE_SECURE'] = False 
+app.config['JWT_COOKIE_CSRF_PROTECT'] = False
+app.config['JWT_COOKIE_HTTPONLY'] = True
+app.config['JWT_ACCESS_COOKIE_NAME'] = 'access_token'
+jwt = JWTManager(app)
 
-limiter = Limiter(
-    get_remote_address,
-    default_limits=["5 per minute"] 
-)
-
-def limit_only_post():
-    return request.remote_addr if request.method == "POST" else None 
-
-@app.errorhandler(429)
-def ratelimit_error(e):
-    return render_template("login.html", error="Too many login attempts! Try again later."), 429
+@jwt.unauthorized_loader
+def custom_unauthorized_response(callback):
+    return redirect(url_for('login')) 
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key = True)
@@ -74,15 +72,13 @@ def index():
 
 @app.route('/register', methods= ['GET', 'POST'])
 def register():
-    if 'email' in session:
-        return redirect('/dashboard')
 
     if request.method == 'POST':
-        name = request.form['name']
+        name = request.form.get('name')
         email = request.form.get('email')
         ph_number = request.form.get('phone')
-        password = request.form['password']
-        confirm_password = request.form['pwd']
+        password = request.form.get('password')
+        confirm_password = request.form.get('pwd')
         is_admin = request.form.get('is_admin')
         
         if(is_admin == "on"):
@@ -113,16 +109,16 @@ def register():
         new_user = User(email=email, password=password, name=name, ph_number=ph_number, is_admin=is_admin)
         db.session.add(new_user)
         db.session.commit()
-        session['email'] = email
-        return redirect('/dashboard')
+        
+        access_token = create_access_token(identity=email, expires_delta=timedelta(hours=1))
+        response = make_response(redirect(url_for('dashboard')))
+        set_access_cookies(response, access_token)
+        return response
 
     return render_template('register.html')
 
 @app.route('/login', methods= ['GET', 'POST'])
-@limiter.limit("5 per minute", key_func=limit_only_post)  
 def login():
-    if 'email' in session:
-        return redirect('/dashboard')
 
     if request.method == 'POST':
         email = request.form.get('email')
@@ -132,30 +128,32 @@ def login():
         user = User.query.filter_by(email=email).first()
 
         if user and user.check_password(password):
-            session['email'] = user.email
-            session.permanent = True if remember_me == "on" else False
-            return redirect('/dashboard')
+            expires = timedelta(days=7) if remember_me else timedelta(hours=1)
+            access_token = create_access_token(identity=email, expires_delta=expires)
+            response = make_response(redirect(url_for('dashboard')))
+            set_access_cookies(response, access_token)
+            return response
         else:
             return render_template('login.html', error = 'Invalid email or password entered!')
 
     return render_template('login.html')
 
 @app.route('/dashboard')
+@jwt_required()
 def dashboard():
-    if 'email' not in session:
-        return redirect('/login')
+    email = get_jwt_identity()
+    user = User.query.filter_by(email=email).first()
+    if(user) :
+        return render_template('dashboard.html', user=user)
 
-    if session.get('email'):
-        user = User.query.filter_by(email= session['email']).first()
-        is_admin = user.is_admin
-        return render_template('dashboard.html', user = user)
-    return redirect('/login')
+    return redirect(url_for('login'))
 
 @app.route('/logout')
 def logout():
-    session.pop('email', None)
-    flash("You have been logged out!")
-    return redirect('/login')
+    response = make_response(redirect(url_for('login')))
+    unset_jwt_cookies(response)
+    flash('Logout successful', 'success')
+    return response
 
 @app.route('/confirm', methods= ['GET', 'POST'])
 def confirm():
@@ -170,18 +168,37 @@ def confirm():
         if user:
             if user.ph_number != ph_number:
                 return render_template('confirm.html', error = "Email and phone number do not match. Please try again!")
-            else : 
-                session['email'] = email
-                return redirect('/forgot')
+            
+            reset_token = create_access_token(identity=email, expires_delta=timedelta(minutes=15))
+
+            return redirect(url_for('forgot', token=reset_token)) 
 
 
     return render_template('confirm.html')
 
 @app.route('/forgot', methods = ['GET','POST'])
 def forgot():
+    token = request.args.get('token')
+
+    if not token:
+        flash("Invalid or expired reset link.", "danger")
+        return redirect(url_for('confirm'))
+    
+    try:
+        email = decode_token(token)['sub'] 
+        user = User.query.filter_by(email=email).first()
+
+        if not user:
+            flash("User not found.", "danger")
+            return redirect(url_for('confirm'))
+
+    except Exception as e:
+        flash(f"Error: {str(e)}", "danger")
+        return redirect(url_for('confirm'))
+
     if request.method == 'POST':
-        password = request.form['password']
-        confirm_password = request.form['pwd']
+        password = request.form.get('password')
+        confirm_password = request.form.get('pwd')
 
         if(password != confirm_password):
             return render_template('forgot.html', error = "Passwords do not match. Please try again")
@@ -193,24 +210,26 @@ def forgot():
         strong_password = has_alpha and has_digit and has_special
 
         if(strong_password == False):
-            return render_template('forgot.html', error = "Please enter a strong password(it should contain alphabets, numbers, as well as special characters)")
+            return render_template('forgot.html', error = "Please enter a strong password(it should contain alphabets, numbers, as well as special characters)")    
         
-        if 'email' not in session:
-            return redirect('/login')
-        
-        if session.get('email'):
-            email = session['email']
-            user = User.query.filter_by(email= email).first()
-            user.password = bcrypt.generate_password_hash(password).decode('utf-8')
-            db.session.commit()
-            session.pop('email', None)
-            flash("Password Changed Successfully!")
-            return redirect('/login')        
+        user.password = bcrypt.generate_password_hash(password).decode('utf-8')
+        db.session.commit()
+        flash("Password Changed Successfully!", "success")
+        return redirect(url_for('login'))
 
-    return render_template('forgot.html')
+    return render_template('forgot.html', token=token)
 
 @app.route('/add_book', methods = ['GET','POST'])
+@jwt_required()
 def add_book():
+
+    email = get_jwt_identity()  
+    user = User.query.filter_by(email=email).first()
+    
+    if not user:
+        flash("Unauthorized access!", "danger")
+        return redirect(url_for('login'))
+
     if request.method == 'POST':
         title = request.form.get('title')
         author = request.form.get('author')
@@ -226,12 +245,21 @@ def add_book():
         db.session.add(new_book)
         db.session.commit()
         flash("New book added successfully!", "success")
-        return redirect('/dashboard')
+        return redirect(url_for('dashboard'))
     
     return render_template('add_book.html')
 
 @app.route('/add_another', methods = ['GET', 'POST'])
+@jwt_required()
 def add_another():
+
+    email = get_jwt_identity()
+    user = User.query.filter_by(email=email).first()
+    
+    if not user:
+        flash("Unauthorized access!", "danger")
+        return redirect(url_for('login'))
+
     if request.method == 'POST':
         title = request.form.get('title')
         author = request.form.get('author')
@@ -247,12 +275,12 @@ def add_another():
         db.session.add(new_book)
         db.session.commit()
         flash("New book added successfully!", "success")
-    return redirect('/add_book')
+    return redirect(url_for('add_book'))
 
 @app.route('/books')
 def books():
-    page = request.args.get('page', type=int)
-    limit = request.args.get('limit', type=int)
+    page = request.args.get('page', 1, type=int)
+    limit = request.args.get('limit', 5, type=int)
     genre = request.args.get('genre', None)
     rating = request.args.get('rating', None, type=float)
     author = request.args.get('author', None)

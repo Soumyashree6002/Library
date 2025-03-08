@@ -16,6 +16,15 @@
   {% if(error): %}
     <p style="color: red;">{{error}}</p>
   {% endif %}
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <ul class="flashes">
+            {% for category, message in messages %}
+                <li class="alert alert-{{ category }}">{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+  {% endwith %}
   <form action="/confirm" method="post">
     <div class="form-group">
       <label for="email">Email:</label>
