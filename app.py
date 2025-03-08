@@ -70,6 +70,7 @@ with app.app_context():
 def index():
     return render_template('index.html')
 
+#Here it will fetch all the details entered in the form and then check if password is equal to confirm password or not. Then it will check if that user's email is already present in the database or not. Also it will check that user's phone number is already present or not. On that basis, it will allow or not the user to create a new account. Then it will check for strong password. If user entered a strong password, then the details of users are added in the database. Then the user is redirected to dashboard page. 
 @app.route('/register', methods= ['GET', 'POST'])
 def register():
 
@@ -117,6 +118,7 @@ def register():
 
     return render_template('register.html')
 
+#Here first all details are fetched from the form and then checked whether the user entered correct password or not. If yes, then user is redirected to dashboard page, otherwise, told that there is error in email or password. 
 @app.route('/login', methods= ['GET', 'POST'])
 def login():
 
@@ -138,6 +140,7 @@ def login():
 
     return render_template('login.html')
 
+#Details of user are fetched from the token, and based on that user is shown the dashboard.html page(if user is admin then the option for add books is shown, and if not, then not shown)
 @app.route('/dashboard')
 @jwt_required()
 def dashboard():
@@ -155,6 +158,7 @@ def logout():
     flash('Logout successful', 'success')
     return response
 
+#Email and phone number of user are collected.First checked if any account with such email exists or not.Then checked if email has corresponding phone number or not. If yes, then user is redirected to forgot.html otherwise confirm.html
 @app.route('/confirm', methods= ['GET', 'POST'])
 def confirm():
     if request.method == 'POST':
@@ -176,6 +180,7 @@ def confirm():
 
     return render_template('confirm.html')
 
+#First checked if user has a valid token or not. If not redirected to confirm.html. Then the password and confirm password are fetched from the form. If not matching, then error is thrown. If matched, then checked if password is strong enough or not. If strong password, then the password is updated for the user. 
 @app.route('/forgot', methods = ['GET','POST'])
 def forgot():
     token = request.args.get('token')
