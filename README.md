@@ -1,35 +1,64 @@
-# Flask Authentication & Book Management App  
+# 📚 BookHive – Flask-Based Book Management Dashboard
 
-## Overview  
-This is a Flask-based web application that provides user authentication and book management functionality. Users can register, log in, manage their accounts, and browse or add books based on their roles.  
+## 🚀 Overview
+**BookHive** is a full-stack web application to manage book collections with secure login, role-based access, and an elegant dashboard. Built with **Flask**, **Bootstrap 5**, and **JWT**, it offers a rich user experience with dark mode support, animations, and responsive card-based views.
 
-## Features  
-- **User Authentication**: Secure registration, login, and logout using JWT-based session management.  
-- **Role-Based Access Control**:  
-  - **Admin**: Can add books.  
-  - **User**: Can browse books.  
-- **Password Management**: Secure password hashing and reset functionality.  
-- **Book Management**: Users can browse books with filters like genre, author, and rating.  
+<details>
+<summary><strong>✨ Features</strong></summary>
 
-## Technologies Used  
-- **Flask** – Web framework  
-- **Flask SQLAlchemy** – ORM for database management  
-- **Flask Bcrypt** – Secure password hashing  
-- **Flask JWT Extended** – Authentication with JSON Web Tokens  
-- **SQLite** – Default database (configurable)  
+### 🔐 Authentication & User Roles
+- JWT-based secure authentication
+- Role-based access:  
+  - Admin → Add and manage books  
+  - User → Browse and filter books
 
-## API Endpoints  
+### 📚 Book Management
+- Add/view books with title, author, genre, rating
+- Filter by genre, rating, or limit
+- Dynamic card rendering for an improved UX
 
-### Authentication  
-- **`POST /register`** – Register a new user  
-- **`POST /login`** – Log in a user  
-- **`GET /logout`** – Log out a user  
-- **`POST /confirm`** – Confirm user identity before password reset  
-- **`POST /forgot`** – Reset password  
+### 🎨 UI/UX Upgrades
+- Fully responsive dashboard with Bootstrap 5
+- Light/Dark Mode toggle with CSS transitions
+- Hero section with gradient background and animated text
+- Modern card designs with hover effects
 
-### Book Management  
-- **`POST /add_book`** – Add a new book (Admin only)  
-- **`POST /add_another`** – Add another book (Admin only)  
-- **`GET /books`** – Retrieve books with filters (pagination, genre, rating, author)  
-- **`GET /books/<book_id>`** – Retrieve a specific book by ID  
+</details>
+
+---
+
+<details>
+<summary><strong>🛠️ Tech Stack</strong></summary>
+
+| Layer        | Technologies                               |
+|--------------|--------------------------------------------|
+| Backend      | Flask, Flask-JWT-Extended, SQLAlchemy      |
+| Authentication | JWT, Flask-Bcrypt                       |
+| Database     | SQLite (default)                           |
+| Frontend     | HTML5, Bootstrap 5, Vanilla JS, Jinja2     |
+| Styling      | Custom CSS, FontAwesome Icons              |
+
+</details>
+
+---
+
+<details>
+<summary><strong>📘 API Endpoints</strong></summary>
+
+### 🔐 Authentication
+- `POST /register` – Register a new user  
+- `POST /login` – Login  
+- `GET /logout` – Logout  
+- `POST /confirm` – Confirm identity before password reset  
+- `POST /forgot` – Reset password  
+
+### 📚 Book Management
+- `POST /add_book` – Add a book (Admin only)  
+- `POST /add_another` – Add another book (Admin only)  
+- `GET /books` – Fetch books (supports pagination + filters)  
+- `GET /books/<book_id>` – Get a book by ID  
+
+</details>
+
+---
 

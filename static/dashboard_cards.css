@@ -1,0 +1,24 @@
+.book-card {
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  background: var(--bs-card-bg);
+}
+
+.book-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+.book-card .card-title {
+  font-weight: 600;
+}
+
+.book-card .card-subtitle {
+  font-size: 0.95rem;
+  color: var(--bs-secondary-color);
+}
+
+.book-card .badge {
+  font-size: 0.85rem;
+}

@@ -1,42 +1,56 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <title>Forgot Password</title>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.slim.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
-</head>
-<body>
+{% extends "base.html" %}
+{% block title %}Reset Password{% endblock %}
 
-<div class="container">
-  <h2>Forgot Password form</h2>
-  {% if(error): %}
-    <p style="color: red;">{{error}}</p>
-  {% endif %}
-    {% with messages = get_flashed_messages(with_categories=true) %}
+{% block content %}
+<div class="section">
+  <div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
-            <ul class="flashes">
-                {% for category, message in messages %}
-                    <li class="alert alert-{{ category }}">{{ message }}</li>
-                {% endfor %}
-            </ul>
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+          {% endfor %}
         {% endif %}
-    {% endwith %}
-  <form action="{{ url_for('forgot', token=token) }}" method="post">
-    <div class="form-group">
-        <label for="password">Password:</label>
-        <input type="password" class="form-control" id="password" placeholder="Enter password" name="password" minlength="6" required>
-    </div>
-    <div class="form-group">
-        <label for="pwd">Confirm Password:</label>
-        <input type="password" class="form-control" id="pwd" placeholder="Enter password" name="pwd" minlength="6" required>
-    </div>
-    <button type="submit" class="btn btn-primary">Submit</button>
-  </form>
-</div>
+      {% endwith %}
 
-</body>
-</html>
+      {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+      {% endif %}
+
+      <div class="card p-4 shadow-sm">
+        <h3 class="text-center mb-4">Reset Your Password</h3>
+        <form method="POST" action="{{ url_for('forgot', token=token) }}">
+          <div class="mb-3 position-relative">
+            <label for="password" class="form-label">New Password</label>
+            <input type="password" id="password" name="password" class="form-control" required minlength="6">
+            <i class="fa-solid fa-eye toggle-password" onclick="togglePassword('password', this)"></i>
+          </div>
+          <div class="mb-3 position-relative">
+            <label for="pwd" class="form-label">Confirm Password</label>
+            <input type="password" id="pwd" name="pwd" class="form-control" required minlength="6">
+            <i class="fa-solid fa-eye toggle-password" onclick="togglePassword('pwd', this)"></i>
+          </div>
+          <button type="submit" class="btn btn-primary w-100">Update Password</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function togglePassword(id, el) {
+    const input = document.getElementById(id);
+    const visible = input.type === "password";
+    input.type = visible ? "text" : "password";
+    el.classList.toggle("fa-eye");
+    el.classList.toggle("fa-eye-slash");
+  }
+</script>
+{% endblock %}
